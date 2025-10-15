@@ -58,17 +58,17 @@ Even if an attacker gets valid admin credentials, they **can't do jack shit** th
 - Can't modify files to inject malicious code
 - Can't escalate privileges of existing accounts
 
-**Assuming there's no shell access** (and there shouldn't be), the attacker is essentially locked out of doing any real damage through the UI. They got credentials? Great. They're worthless.
+**Assuming there's no shell access with the same credentials** (and there shouldn't be), the attacker is essentially locked out of doing any real damage through the UI. They got credentials? Great. They're worthless.
 
 ---
 
 ## 🛠️ "But What If the Client Wants to Install/Update Something?"
 
-Tough luck. They go through us. 
+Tough luck. They go through you, the developer. 
 
-Look, I don't care what they want to install. Half the time clients install bloated, poorly-coded plugins that create more problems than they solve. This way, we maintain quality control and actually know what's running on the site.
+Look, I don't care what they want to install. Half the time clients install bloated, poorly-coded plugins that create more problems than they solve. The other half they decide to update their whole site on a Friday night and then ruin your weekend because it broke after the updates. This way, we maintain quality control and actually know what's running on the site.
 
-**Added bonus:** This can be excellent leverage for clients who mysteriously "forget" to pay their bills on time. No payment, no updates. Simple business.
+**Added bonus:** This can be excellent leverage for clients who mysteriously "forget" to pay their bills on time. No payment, no updates, hard to leave without your involvement. Simple business.
 
 ---
 
@@ -209,7 +209,7 @@ You've been warned.
 
 - Agencies managing client sites who are tired of cleaning up malware
 - Developers who want to sleep peacefully at night
-- Anyone who's dealt with "my site got hacked" calls one too many times
+- Anyone who's dealt with "my site got hacked" calls on a Friday night one too many times
 - Sites with clients who treat passwords like public information
 - Paranoid sysadmins (the best kind of sysadmins)
 
@@ -237,7 +237,9 @@ You've been warned.
 
 ---
 
-## 📜 License
+## 📜 WTFPL License
+
+_Do What The Fuck You Want To Public License._
 
 Use it, modify it, distribute it. Just don't blame us if you lock yourself out.
 
