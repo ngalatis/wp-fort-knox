@@ -126,10 +126,61 @@ Then your admin users are currently hobbled and you didn't even know it. Follow 
 
 This plugin is **designed exclusively** for the `wp-content/mu-plugins` folder. It cannot and should not be installed as a regular plugin.
 
-**Installation Steps:**
-1. Copy `wp-fort-knox.php` to your `wp-content/mu-plugins/` directory
-2. That's it. No activation needed. It runs automatically.
-3. Seriously, don't try to install this as a regular plugin. It defeats the whole purpose.
+### Quick Installation (One Command)
+
+**Method 1: WP-CLI (Recommended)**
+
+From your WordPress installation directory:
+
+```bash
+wp eval '
+    $mu_dir = WP_CONTENT_DIR . "/mu-plugins";
+    if (!is_dir($mu_dir)) { mkdir($mu_dir, 0755, true); }
+    file_put_contents(
+        $mu_dir . "/wp-fort-knox.php",
+        file_get_contents("https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php")
+    );
+    echo "WP Fort Knox v2.0.0 installed successfully!\n";
+'
+```
+
+**Why WP-CLI method is better:**
+- Automatically finds the correct wp-content path (works with custom directory structures)
+- Creates mu-plugins directory if it doesn't exist
+- Works regardless of your current directory
+- Verifies you're in a valid WordPress installation
+
+**Method 2: Direct Download**
+
+```bash
+# Create mu-plugins directory if needed
+mkdir -p /path/to/wordpress/wp-content/mu-plugins
+
+# Download the plugin (curl)
+curl -o /path/to/wordpress/wp-content/mu-plugins/wp-fort-knox.php \
+https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php
+
+# Or with wget
+wget -O /path/to/wordpress/wp-content/mu-plugins/wp-fort-knox.php \
+https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php
+```
+
+**Note:** Replace `YOUR_USERNAME` with the actual GitHub username/organization and `/path/to/wordpress/` with your actual WordPress installation path.
+
+### Manual Installation
+
+1. Download `wp-fort-knox.php` from the [v2.0.0 release](https://github.com/YOUR_USERNAME/wp-fort-knox/releases/tag/v2.0.0)
+2. Upload to your `wp-content/mu-plugins/` directory via SFTP
+3. That's it. No activation needed. It runs automatically.
+
+### Verify Installation
+
+```bash
+wp eval 'var_dump(class_exists("WP_Fort_Knox"));'
+# Should output: bool(true)
+```
+
+**Important:** Don't try to install this as a regular plugin. It defeats the whole purpose.
 
 ---
 
@@ -303,6 +354,25 @@ Check your WordPress debug log or server error logs to monitor suspicious activi
 
 ## ⚠️ Important Notes & Warnings
 
+### Prerequisites - Read This Before Installing
+
+This plugin is **not for casual WordPress users**. It's designed for developers and system administrators who manage WordPress sites professionally. You need:
+
+**Required:**
+- ✅ **SSH/SFTP access** to your server - You need to be able to upload files and navigate the filesystem
+- ✅ **WP-CLI installed and working** - This is non-negotiable. All admin operations go through WP-CLI
+- ✅ **Command line proficiency** - You should be comfortable with terminal commands and bash
+- ✅ **WordPress knowledge** - Understanding of roles, capabilities, and how WordPress security works
+
+**Recommended:**
+- ✅ **Root/sudo access** - For modifying wp-config.php with proper permissions (though you can work around this with chmod if needed)
+- ✅ **Git familiarity** - For updating the plugin and tracking changes
+- ✅ **Database backup strategy** - Because you should always have backups, paranoid or not
+
+**If you don't have the above, this plugin is not for you.** Seriously. You'll lock yourself out and blame us. Don't do it.
+
+### General Warnings
+
 - **This plugin is aggressive by design.** It's not for everyone.
 - **WP-CLI access is required** for any administrative file operations.
 - **Existing admin users keep their roles** but can't perform file operations through wp-admin.
@@ -371,6 +441,169 @@ Use it, modify it, distribute it. Just don't blame us if you lock yourself out.
 Have a problem? Check your WP-CLI access first. Still have a problem? You probably did something wrong.
 
 For serious issues: Open an issue or PR on the repo.
+
+---
+
+## ❓ FAQ (Frequently Asked Questions)
+
+### Q: Will this slow down my WordPress site?
+
+**A:** No. The capability filtering happens on admin requests only, not on the frontend. The performance impact is negligible - we're talking microseconds on admin page loads. Your visitors won't notice a thing.
+
+### Q: Can I use this on WordPress Multisite?
+
+**A:** Yes. The plugin is network-compatible and works on WordPress multisite installations. It will apply restrictions network-wide since it's an mu-plugin.
+
+### Q: What if I lose SSH access?
+
+**A:** You're in trouble, but not because of this plugin. You'd need to contact your hosting provider to restore SSH access. Once you have it back, you can disable the plugin via wp-config.php or remove the file. This is why we recommend having a backup access method to your server.
+
+### Q: Can I whitelist certain admin users to bypass restrictions?
+
+**A:** Not in v2.0.0. Everyone goes through WP-CLI, no exceptions. This is by design - security that has exceptions isn't secure. If you need this feature, you can modify the code or use the `wp_fort_knox_disabled` filter to implement your own logic.
+
+### Q: Does this protect against all WordPress attacks?
+
+**A:** No. This plugin specifically protects against attacks that use compromised admin credentials to install backdoors or create additional admin accounts. You still need:
+- Strong passwords and 2FA
+- Regular security updates
+- Server-level security (firewall, SSH key authentication, etc.)
+- File permission hardening
+- Database security
+
+This plugin is **one layer** of a comprehensive security strategy, not the whole strategy.
+
+### Q: Can I use this with plugin X (Wordfence, iThemes Security, etc.)?
+
+**A:** Yes. This plugin doesn't conflict with other security plugins. It's complementary. Most security plugins focus on monitoring and blocking malicious requests. WP Fort Knox focuses on limiting what an attacker can do even with valid admin credentials. It is actually tested and working alongside Wordfence in multiple sites.
+
+### Q: Why not just use `DISALLOW_FILE_MODS` alone?
+
+**A:** `DISALLOW_FILE_MODS` is great, but it only blocks file modifications. Attackers can still create admin accounts and elevate user roles, which can be used for reconnaissance, data theft, or setting up future attacks. WP Fort Knox blocks these vectors too.
+
+### Q: What happens to scheduled plugin updates?
+
+**A:** Automatic updates via wp-cron are blocked by `DISALLOW_FILE_MODS`. You handle all updates manually via WP-CLI. This is actually a good thing - you maintain control over when updates happen and can test them properly.
+
+### Q: Can clients still access wp-admin?
+
+**A:** Yes. They can log in and do everything except:
+- Manage plugins (install/update/delete)
+- Edit files (plugins, themes, etc.)
+- Create admin users
+- Elevate users to admin
+
+They can still manage content, customize themes via the customizer (if it doesn't require file writes), manage users (non-admin), etc.
+
+### Q: Do I need root access to use this?
+
+**A:** Not strictly required, but **highly recommended**. You need to be able to:
+1. Upload files to `wp-content/mu-plugins/`
+2. Optionally modify `wp-config.php` (for the disable constant)
+3. Run WP-CLI commands (may or may not need root depending on file permissions)
+
+If your server is set up with proper file ownership (WordPress files owned by your user), you might not need root. But for modifying wp-config.php with secure permissions (600/400), root is helpful.
+
+---
+
+## 🔧 Troubleshooting
+
+### Plugin doesn't seem to be active / restrictions not working
+
+**Check:**
+1. File is actually in `wp-content/mu-plugins/wp-fort-knox.php` (not in a subdirectory)
+2. File permissions are readable (644 or 644)
+3. No PHP errors - check your error logs: `tail -f /path/to/error.log`
+4. Not accidentally disabled via `WP_FORT_KNOX_DISABLED` constant in wp-config.php
+5. Verify with: `wp eval 'var_dump(class_exists("WP_Fort_Knox"));'` - should return `bool(true)`
+
+### I can still install plugins in wp-admin
+
+**Possible causes:**
+1. You're testing with WP-CLI (it bypasses the plugin by design)
+2. The plugin file isn't loaded (see above)
+3. You're on a staging/local environment and don't have `ABSPATH` properly defined
+4. Another plugin is interfering (unlikely) - disable other security plugins temporarily to test
+
+### WP-CLI commands fail with permission errors
+
+**Solution:**
+```bash
+# Option 1: Run with --allow-root if you're actually root
+wp plugin install plugin-name --allow-root
+
+# Option 2: Fix file ownership
+sudo chown -R www-data:www-data /path/to/wordpress
+# Or whatever user your web server runs as (nginx, apache, etc.)
+
+# Option 3: Run as the web server user
+sudo -u www-data wp plugin install plugin-name
+```
+
+### Locked myself out / Can't disable the plugin
+
+**Solution:**
+If you can access SSH:
+```bash
+# Option 1: Remove the file
+cd /path/to/wp-content/mu-plugins/
+mv wp-fort-knox.php wp-fort-knox.php.disabled
+
+# Option 2: Add disable constant to wp-config.php
+echo "define('WP_FORT_KNOX_DISABLED', true);" >> wp-config.php
+```
+
+If you can't access SSH, contact your hosting provider. They can disable it for you.
+
+### After upgrading from v1.0.0, capabilities are still broken
+
+**Solution:**
+You forgot to restore the capabilities. Run:
+```bash
+wp role reset --all
+# Or manually:
+wp cap add administrator install_plugins upload_plugins update_plugins delete_plugins activate_plugins edit_plugins
+```
+
+See the full upgrade guide above.
+
+### Plugin conflicts with my theme's admin features
+
+**Not a bug, it's a feature.** If your theme's admin features require file modifications or plugin installations, they'll be blocked. You have two options:
+
+1. **Disable temporarily** when you need those features:
+   ```php
+   define('WP_FORT_KNOX_DISABLED', true); // in wp-config.php
+   ```
+
+2. **Programmatic control** - Add this to your theme's functions.php:
+   ```php
+   add_filter('wp_fort_knox_disabled', function($disabled) {
+       // Your custom logic here
+       // Example: Disable for specific user
+       if (get_current_user_id() === 1) {
+           return true;
+       }
+       return $disabled;
+   });
+   ```
+
+### How do I verify it's actually working?
+
+**Test scenarios:**
+
+1. **Try to install a plugin via wp-admin** - Should be blocked (buttons disabled/hidden)
+2. **Try to create admin user via wp-admin** - Should see error or no admin role in dropdown
+3. **Install via WP-CLI** - Should work perfectly:
+   ```bash
+   wp plugin install wordpress-seo
+   # Should succeed
+   ```
+4. **Check capabilities are filtered:**
+   ```bash
+   # This should show install_plugins = false (filtered at runtime)
+   wp eval 'var_dump(current_user_can("install_plugins"));'
+   ```
 
 ---
 
