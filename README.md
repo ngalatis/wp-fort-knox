@@ -218,7 +218,7 @@ Even if an attacker gets valid admin credentials, they **can't do jack shit** th
 - Can't modify files to inject malicious code
 - Can't escalate privileges of existing accounts
 
-**Assuming there's no shell access with the same credentials** (and there shouldn't be), the attacker is essentially locked out of doing any real damage through the UI. They got credentials? Great. They're worthless.
+**Assuming there's no shell access with the same credentials** (and there shouldn't be), the attacker is essentially locked out of doing any real damage through the UI. They got WordPress admin login data? Great. They're worthless.
 
 ---
 
