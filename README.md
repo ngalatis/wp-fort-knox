@@ -138,7 +138,7 @@ wp eval '
     if (!is_dir($mu_dir)) { mkdir($mu_dir, 0755, true); }
     file_put_contents(
         $mu_dir . "/wp-fort-knox.php",
-        file_get_contents("https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php")
+        file_get_contents("https://raw.githubusercontent.com/ngalatis/wp-fort-knox/v2.0.0/wp-fort-knox.php")
     );
     echo "WP Fort Knox v2.0.0 installed successfully!\n";
 '
@@ -158,18 +158,18 @@ mkdir -p /path/to/wordpress/wp-content/mu-plugins
 
 # Download the plugin (curl)
 curl -o /path/to/wordpress/wp-content/mu-plugins/wp-fort-knox.php \
-https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php
+https://raw.githubusercontent.com/ngalatis/wp-fort-knox/v2.0.0/wp-fort-knox.php
 
 # Or with wget
 wget -O /path/to/wordpress/wp-content/mu-plugins/wp-fort-knox.php \
-https://raw.githubusercontent.com/YOUR_USERNAME/wp-fort-knox/v2.0.0/wp-fort-knox.php
+https://raw.githubusercontent.com/ngalatis/wp-fort-knox/v2.0.0/wp-fort-knox.php
 ```
 
-**Note:** Replace `YOUR_USERNAME` with the actual GitHub username/organization and `/path/to/wordpress/` with your actual WordPress installation path.
+**Note:** Replace `/path/to/wordpress/` with your actual WordPress installation path.
 
 ### Manual Installation
 
-1. Download `wp-fort-knox.php` from the [v2.0.0 release](https://github.com/YOUR_USERNAME/wp-fort-knox/releases/tag/v2.0.0)
+1. Download `wp-fort-knox.php` from the [v2.0.0 release](https://github.com/ngalatis/wp-fort-knox/releases/tag/v2.0.0)
 2. Upload to your `wp-content/mu-plugins/` directory via SFTP
 3. That's it. No activation needed. It runs automatically.
 
