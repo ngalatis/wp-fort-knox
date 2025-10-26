@@ -1,9 +1,124 @@
 # WP Fort Knox - The Paranoid Security Plugin
 
-**Version:** 1.0.0  
+**Version:** 2.0.0
 **Author:** WEFIXIT
 
 A zero-tolerance WordPress security plugin that locks down your site tighter than Fort Knox. Because paranoia is just good planning.
+
+---
+
+## 🎉 What's New in Version 2.0.0
+
+Version 2.0.0 introduces a fundamental philosophical shift in how this plugin operates. Instead of **permanently nuking capabilities** from the WordPress database like some kind of security-drunk cowboy, we now use **runtime filtering**. What does this mean for you?
+
+### The Big Changes:
+
+- **✨ Non-Destructive by Design** - Capabilities are filtered at runtime, not permanently deleted. When you disable the plugin, everything returns to normal automatically. No more manual restoration ceremonies.
+
+- **🔧 Temporary Disable Feature** - Add `define('WP_FORT_KNOX_DISABLED', true);` to wp-config.php and the plugin steps aside gracefully. Need to do some emergency work? Boom, done. Remove the constant when finished.
+
+- **📢 Admin Notices** - The plugin now actually tells users why they can't do things instead of silently crushing their dreams. Revolutionary, we know.
+
+- **🏗️ Cleaner Architecture** - Properly structured as a class because we're professionals (sometimes).
+
+### Why This Matters:
+
+**Version 1.0.0 was a sledgehammer.** It permanently removed capabilities from user roles in the database. Effective? Sure. Reversible? Not without incantations and WP-CLI knowledge. If you disabled v1.0.0 without running the restoration commands, your admins were still crippled. That's not security, that's just being mean.
+
+**Version 2.0.0 is a velvet rope.** Same security, zero permanent damage. The capabilities are still there in the database, we just filter them out when WordPress checks them. Disable the plugin and WordPress goes back to normal business immediately.
+
+Same paranoia, better execution.
+
+---
+
+## 🔄 Upgrading from Version 1.0.0 to 2.0.0
+
+If you're running v1.0.0, you need to upgrade. Not "should upgrade" - **need to upgrade**. Here's why and how.
+
+### Why Upgrade?
+
+Version 1.0.0 permanently strips capabilities from your WordPress database. If something goes wrong, you're manually fixing it. Version 2.0.0 gives you the same security without the permanent consequences. It's a no-brainer.
+
+### The Upgrade Process
+
+**Step 1: Understand Your Current State**
+
+If you've been running v1.0.0, your administrator role (and possibly other roles) have already had their plugin management capabilities permanently removed from the database. This is not a drill - they're actually gone.
+
+**Step 2: Replace the Plugin File**
+
+Via SSH or SFTP:
+
+```bash
+# Navigate to mu-plugins
+cd /path/to/wp-content/mu-plugins/
+
+# Backup the old version (just in case you enjoy suffering)
+cp wp-fort-knox.php wp-fort-knox-v1-backup.php
+
+# Replace with v2.0.0
+# Upload the new wp-fort-knox.php file here
+```
+
+**Step 3: Restore the Capabilities v1.0.0 Destroyed**
+
+This is the critical step. Version 1.0.0 destroyed these capabilities, and they don't magically come back. You need to restore them manually so that v2.0.0 can properly filter them at runtime.
+
+Via WP-CLI:
+
+```bash
+# Option A: Nuclear option - Reset all roles to WordPress defaults
+# This is the easiest and most reliable method
+wp role reset --all
+
+# Option B: Surgical option - Restore just the plugin capabilities
+# Use this if you have custom role configurations you want to preserve
+wp cap add administrator install_plugins
+wp cap add administrator upload_plugins
+wp cap add administrator update_plugins
+wp cap add administrator delete_plugins
+wp cap add administrator activate_plugins
+wp cap add administrator edit_plugins
+
+# If you modified other roles in v1.0.0, restore their capabilities too
+wp cap add editor install_plugins
+wp cap add editor upload_plugins
+# ... etc
+```
+
+**Step 4: Verify Everything Works**
+
+```bash
+# Check that capabilities are back in the database
+wp cap list administrator | grep plugin
+
+# You should see:
+# install_plugins
+# upload_plugins
+# update_plugins
+# delete_plugins
+# activate_plugins
+# edit_plugins
+```
+
+**Step 5: Test the New Version**
+
+1. Try to access the Plugins page in wp-admin (you should see a notice from WP Fort Knox)
+2. Try to install a plugin via wp-admin (should be blocked)
+3. Install a plugin via WP-CLI (should work perfectly)
+4. Temporarily disable via wp-config.php to verify the disable feature works
+
+### What If I Already Removed v1.0.0 Without Restoring Capabilities?
+
+Then your admin users are currently hobbled and you didn't even know it. Follow **Step 3** above to restore the capabilities, then install v2.0.0. This is exactly why v2.0.0 exists.
+
+### Post-Upgrade Checklist
+
+- ✅ Plugin capabilities exist in database (verified via `wp cap list`)
+- ✅ v2.0.0 file is in mu-plugins directory
+- ✅ Plugin management is blocked in wp-admin (as intended)
+- ✅ Plugin management works via WP-CLI (as intended)
+- ✅ Temporary disable feature works (test it)
 
 ---
 
@@ -141,37 +256,36 @@ wp core update --version=6.4.1
 wp core check-update
 ```
 
-### Disabling the Plugin & Restoring Admin Capabilities
+### Disabling the Plugin (v2.0.0)
 
-If you need to disable WP Fort Knox and restore normal WordPress functionality:
+Need to temporarily disable WP Fort Knox? Easy. Version 2.0.0 made this civilized.
 
-```bash
-# Step 1: Remove or rename the plugin file (via SSH/SFTP)
-# Navigate to wp-content/mu-plugins/ and delete or rename wp-fort-knox.php
+**Option 1: Temporary Disable (Recommended)**
 
-# Step 2: Reset all roles to WordPress defaults (easiest method)
-wp role reset --all
+Add this to your wp-config.php:
 
-# Or reset just the administrator role
-wp role reset administrator
-
-# Verify capabilities were restored
-wp cap list administrator | grep plugin
+```php
+define('WP_FORT_KNOX_DISABLED', true);
 ```
 
-**Alternative method** - Manually restore specific capabilities if you don't want to reset everything:
+The plugin sees this and steps aside. All capabilities work normally. Remove the line when you're done. Simple.
+
+**Option 2: Permanent Removal**
+
+If you're really done with paranoia (bad choice, but whatever):
 
 ```bash
-# Restore plugin management capabilities to administrators
-wp cap add administrator install_plugins
-wp cap add administrator upload_plugins
-wp cap add administrator update_plugins
-wp cap add administrator delete_plugins
-wp cap add administrator activate_plugins
-wp cap add administrator edit_plugins
+# Via SSH/SFTP, navigate to mu-plugins and remove the file
+cd /path/to/wp-content/mu-plugins/
+rm wp-fort-knox.php
+
+# Or just rename it
+mv wp-fort-knox.php wp-fort-knox.php.disabled
 ```
 
-**Pro tip:** Before disabling the plugin, save these commands somewhere accessible. You'll need them.
+That's it. No capability restoration needed, no database cleanup, no prayer circles. The capabilities were never actually removed, just filtered. When the plugin's gone, the filters are gone, and everything works normally.
+
+**Again, this is why v2.0.0 exists.**
 
 ---
 
@@ -193,15 +307,15 @@ Check your WordPress debug log or server error logs to monitor suspicious activi
 - **WP-CLI access is required** for any administrative file operations.
 - **Existing admin users keep their roles** but can't perform file operations through wp-admin.
 - **Cannot be deactivated from wp-admin** (because it's in mu-plugins, duh).
-- To disable: SSH in and delete/rename the file from mu-plugins folder.
+- To disable: Add constant to wp-config.php or SSH in and delete/rename the file.
 
-### ⚠️⚠️⚠️ CRITICAL WARNING: DESTRUCTIVE CAPABILITY REMOVAL ⚠️⚠️⚠️
+### ✨ Version 2.0.0: Non-Destructive Operation
 
-**This plugin PERMANENTLY removes capabilities from WordPress roles in a destructive way.**
+**Good news: This plugin NO LONGER permanently destroys capabilities.**
 
-When the plugin runs, it strips plugin management capabilities from all user roles. **These capabilities DO NOT automatically return when you disable the plugin.** If you disable WP Fort Knox without restoring capabilities, your admin users will still be unable to manage plugins through wp-admin.
+Version 2.0.0 uses runtime filtering instead of database modification. When the plugin is active, it filters out plugin management capabilities when WordPress checks them. When the plugin is disabled, capabilities work normally again. No restoration needed, no database cleanup, no drama.
 
-You've been warned.
+**If you're upgrading from v1.0.0:** See the upgrade instructions above. You'll need to restore the capabilities v1.0.0 destroyed before v2.0.0 can work properly.
 
 ---
 
@@ -219,21 +333,28 @@ You've been warned.
 
 **Defines:** `DISALLOW_FILE_MODS` constant (only when not in WP-CLI)
 
-**Removes Capabilities:**
+**Filters Capabilities at Runtime (Non-Destructive):**
 - `install_plugins`
 - `upload_plugins`
 - `update_plugins`
 - `delete_plugins`
 
-**Filters Used:**
-- `editable_roles` - Hides administrator role
-- `pre_insert_user_data` - Blocks admin user creation
-- `wp_update_user` - Prevents role elevation
-- `user_has_cap` - Monitors capability changes
+**WordPress Hooks Used:**
 
-**Actions Used:**
-- `init` - Sets up restrictions early
-- `user_register` - Logs admin user creation
+*Filters:*
+- `user_has_cap` - Runtime capability filtering (the magic sauce)
+- `editable_roles` - Hides administrator role from dropdowns
+- `pre_insert_user_data` - Blocks admin user creation attempts
+- `wp_fort_knox_disabled` - Programmatic disable control
+
+*Actions:*
+- `set_user_role` - Prevents role elevation to administrator
+- `admin_notices` - Shows informational notices on relevant admin pages
+
+**Disable Methods:**
+- WP-CLI context (automatic bypass)
+- `WP_FORT_KNOX_DISABLED` constant in wp-config.php
+- `wp_fort_knox_disabled` filter hook
 
 ---
 
@@ -250,6 +371,32 @@ Use it, modify it, distribute it. Just don't blame us if you lock yourself out.
 Have a problem? Check your WP-CLI access first. Still have a problem? You probably did something wrong.
 
 For serious issues: Open an issue or PR on the repo.
+
+---
+
+## 📋 Changelog
+
+### Version 2.0.0 (Current)
+**Major Release - Non-Destructive Architecture**
+
+- **Changed:** Complete rewrite to use runtime capability filtering instead of permanent database modification
+- **Added:** Temporary disable feature via `WP_FORT_KNOX_DISABLED` constant in wp-config.php
+- **Added:** Admin notices on plugins and user pages to inform users about restrictions
+- **Added:** `wp_fort_knox_disabled` filter for programmatic control
+- **Improved:** Structured as proper PHP class with better code organization
+- **Fixed:** Capabilities now automatically restore when plugin is disabled (no manual restoration needed)
+- **Breaking Change:** Requires capability restoration if upgrading from v1.0.0 (see upgrade guide)
+
+### Version 1.0.0
+**Initial Release**
+
+- Blocked file modifications via `DISALLOW_FILE_MODS` constant
+- Permanently removed plugin management capabilities from all user roles (destructive)
+- Blocked admin user creation and role elevation through wp-admin
+- Security logging for admin user creation attempts
+- WP-CLI compatibility maintained for all operations
+
+**Deprecated:** This version is no longer recommended due to destructive capability removal.
 
 ---
 
