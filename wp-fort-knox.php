@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: WP Fort Knox
- * Description: Enhanced WordPress security plugin that disables file modifications and plugin management from wp-admin while preserving WP-CLI functionality. Non-destructive - uses runtime filtering.
+ * Description: Enhanced WordPress security plugin that disables file modifications and plugin management from wp-admin while preserving WP-CLI functionality.
  * Version: 2.0.0
  * Author: WEFIXIT
  * Network: true
@@ -207,7 +207,7 @@ class WP_Fort_Knox {
         if ( $screen && $screen->id === 'plugins' ) {
             ?>
             <div class="notice notice-info">
-                <p><strong>WP Fort Knox:</strong> Plugin management is disabled in wp-admin. Use WP-CLI for all plugin operations. To disable temporarily, add <code>define('WP_FORT_KNOX_DISABLED', true);</code> to wp-config.php</p>
+                <p><strong>WP Fort Knox:</strong> Plugin management is disabled in wp-admin. Use WP-CLI for all plugin operations. To disable temporarily, contact support.</p>
             </div>
             <?php
         }
@@ -216,7 +216,7 @@ class WP_Fort_Knox {
         if ( $screen && $screen->id === 'user' && $screen->action === 'add' ) {
             ?>
             <div class="notice notice-warning">
-                <p><strong>WP Fort Knox:</strong> Administrator role creation is disabled. Use WP-CLI: <code>wp user create username email@example.com --role=administrator</code></p>
+                <p><strong>WP Fort Knox:</strong> Administrator role creation is disabled. Use WP-CLI for all user operations. To disable temporarily, contact support.</p>
             </div>
             <?php
         }
