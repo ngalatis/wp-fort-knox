@@ -2,14 +2,56 @@
 
 /**
  * Plugin Name: WP Fort Knox
- * Description: Enhanced WordPress security - disables file modifications and plugin management from wp-admin
+ * Description: Enhanced WordPress security plugin that disables file modifications and plugin management from wp-admin while preserving WP-CLI functionality. Non-destructive - uses runtime filtering.
  * Version: 2.0.0
  * Author: WEFIXIT
+ * Network: true
+ *
+ * Security Features:
+ * - Defines DISALLOW_FILE_MODS constant to block file changes from wp-admin
+ * - Filters plugin installation, upload, update, and deletion capabilities at runtime (non-destructive)
+ * - Blocks creation of administrator users through wp-admin interface
+ * - Prevents role elevation to administrator outside of WP-CLI
+ * - Hides administrator role from user role dropdown in wp-admin
+ * - Displays admin notices to inform users about restrictions
+ * - Preserves WP-CLI functionality for all operations
+ * - Can be disabled temporarily via constant or filter
  *
  * This is a Must-Use plugin - place directly in /wp-content/mu-plugins/
- * 
- * To disable temporarily: define('WP_FORT_KNOX_DISABLED', true); in wp-config.php
- * To restore capabilities: wp cap add administrator install_plugins update_plugins delete_plugins upload_plugins --allow-root
+ *
+ * Temporary Disable:
+ * Add to wp-config.php: define('WP_FORT_KNOX_DISABLED', true);
+ * Or use filter: add_filter('wp_fort_knox_disabled', '__return_true');
+ *
+ * WP-CLI Commands for Administrative Tasks:
+ *
+ * User Management:
+ * wp user create admin admin@example.com --role=administrator --user_pass=secure_password
+ * wp user set-role username administrator
+ * wp user list --fields=ID,user_login,roles
+ *
+ * Plugin Management:
+ * wp plugin install plugin-name --activate
+ * wp plugin update plugin-name
+ * wp plugin update --all
+ * wp plugin list
+ * wp plugin deactivate plugin-name
+ * wp plugin delete plugin-name
+ *
+ * Theme Management:
+ * wp theme install theme-name --activate
+ * wp theme update theme-name
+ * wp theme update --all
+ * wp theme list
+ *
+ * Core Updates:
+ * wp core update
+ * wp core update --version=6.4.1
+ * wp core check-update
+ *
+ * @package WPFortKnox
+ * @since 1.0.0
+ * @version 2.0.0
  */
 
 // Prevent direct access
