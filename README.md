@@ -68,22 +68,16 @@ Via WP-CLI:
 
 ```bash
 # Option A: Nuclear option - Reset all roles to WordPress defaults
-# This is the easiest and most reliable method
+# This is remove all custom capabilities added by other plugins.
+# NOT recommended
 wp role reset --all
 
-# Option B: Surgical option - Restore just the plugin capabilities
+# Option B: Recommended option - Restore just the plugin capabilities 
+# we removed with v1.0.0
 # Use this if you have custom role configurations you want to preserve
 wp cap add administrator install_plugins
-wp cap add administrator upload_plugins
 wp cap add administrator update_plugins
 wp cap add administrator delete_plugins
-wp cap add administrator activate_plugins
-wp cap add administrator edit_plugins
-
-# If you modified other roles in v1.0.0, restore their capabilities too
-wp cap add editor install_plugins
-wp cap add editor upload_plugins
-# ... etc
 ```
 
 **Step 4: Verify Everything Works**
@@ -560,9 +554,10 @@ If you can't access SSH, contact your hosting provider. They can disable it for 
 **Solution:**
 You forgot to restore the capabilities. Run:
 ```bash
+# Not Recommended (see migration instructions)
 wp role reset --all
 # Or manually:
-wp cap add administrator install_plugins upload_plugins update_plugins delete_plugins activate_plugins edit_plugins
+wp cap add administrator install_plugins update_plugins delete_plugins
 ```
 
 See the full upgrade guide above.
