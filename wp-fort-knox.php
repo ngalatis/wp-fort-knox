@@ -2,44 +2,56 @@
 
 /**
  * Plugin Name: WP Fort Knox
- * Description: Enhanced WordPress security plugin that disables file modifications, removes plugin management capabilities, and prevents admin user creation from wp-admin while preserving WP-CLI functionality.
- * Version: 1.0.0
+ * Description: Enhanced WordPress security plugin that disables file modifications and plugin management from wp-admin while preserving WP-CLI functionality. Non-destructive - uses runtime filtering.
+ * Version: 2.0.0
  * Author: WEFIXIT
  * Network: true
- * 
+ *
  * Security Features:
  * - Defines DISALLOW_FILE_MODS constant to block file changes from wp-admin
- * - Removes plugin installation, upload, update, and deletion capabilities from all user roles
+ * - Filters plugin installation, upload, update, and deletion capabilities at runtime (non-destructive)
  * - Blocks creation of administrator users through wp-admin interface
  * - Prevents role elevation to administrator outside of WP-CLI
- * - Removes administrator role from user role dropdown in wp-admin
- * - Monitors and logs admin user creation attempts
+ * - Hides administrator role from user role dropdown in wp-admin
+ * - Displays admin notices to inform users about restrictions
  * - Preserves WP-CLI functionality for all operations
- * 
+ * - Can be disabled temporarily via constant or filter
+ *
+ * This is a Must-Use plugin - place directly in /wp-content/mu-plugins/
+ *
+ * Temporary Disable:
+ * Add to wp-config.php: define('WP_FORT_KNOX_DISABLED', true);
+ * Or use filter: add_filter('wp_fort_knox_disabled', '__return_true');
+ *
  * WP-CLI Commands for Administrative Tasks:
- * 
- * Create admin user:
+ *
+ * User Management:
  * wp user create admin admin@example.com --role=administrator --user_pass=secure_password
- * 
- * Update user role to admin:
  * wp user set-role username administrator
- * 
- * Install/update plugins:
- * wp plugin install plugin-name --activate
- * wp plugin update --all
- * 
- * Install/update themes:
- * wp theme install theme-name --activate
- * wp theme update --all
- * 
- * Update WordPress core:
- * wp core update
- * 
- * List all users with roles:
  * wp user list --fields=ID,user_login,roles
- * 
+ *
+ * Plugin Management:
+ * wp plugin install plugin-name --activate
+ * wp plugin update plugin-name
+ * wp plugin update --all
+ * wp plugin list
+ * wp plugin deactivate plugin-name
+ * wp plugin delete plugin-name
+ *
+ * Theme Management:
+ * wp theme install theme-name --activate
+ * wp theme update theme-name
+ * wp theme update --all
+ * wp theme list
+ *
+ * Core Updates:
+ * wp core update
+ * wp core update --version=6.4.1
+ * wp core check-update
+ *
  * @package WPFortKnox
  * @since 1.0.0
+ * @version 2.0.0
  */
 
 // Prevent direct access
@@ -47,96 +59,169 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-
-// Block file modifications from wp-admin, except for WP-CLI
-add_action( 'init', function () {
-    if ( ! defined( 'WP_CLI' ) && ! defined( 'DISALLOW_FILE_MODS' ) ) {
-        define( 'DISALLOW_FILE_MODS', true );
-    }
-    foreach ( [ 'administrator', 'editor', 'author', 'contributor', 'subscriber' ] as $role_slug ) {
-        $role = get_role( $role_slug );
-        if ( $role ) {
-            $role->remove_cap( 'install_plugins' );
-            $role->remove_cap( 'upload_plugins' );   // WP 6.3+
-            $role->remove_cap( 'update_plugins' );
-            $role->remove_cap( 'delete_plugins' );
+class WP_Fort_Knox {
+    
+    private $managed_capabilities = [
+        'install_plugins',
+        'upload_plugins',
+        'update_plugins', 
+        'delete_plugins'
+    ];
+    
+    public function __construct() {
+        // Check if disabled
+        if ( $this->is_disabled() ) {
+            return;
         }
-    }
-}, 1 );
-
-// Prevent admin interface from showing Administrator role in user role dropdown, except for WP-CLI
-add_filter('editable_roles', function($roles) {
-    if (!defined('WP_CLI') || !WP_CLI) {
-        unset($roles['administrator']);
-    }
-    return $roles;
-});
-
-// Block user creation with admin role
-add_filter('pre_insert_user_data', function($data, $update, $user_id) {
-    // Skip check if updating existing user or if in WP-CLI
-    if ($update || (defined('WP_CLI') && WP_CLI)) {
-        return $data;
+        
+        // Apply security measures
+        $this->apply_security();
     }
     
-    // Block if trying to create admin
-    if (isset($data['role']) && $data['role'] === 'administrator') {
-        wp_die('Admin user creation is disabled');
+    /**
+     * Check if plugin should be disabled
+     */
+    private function is_disabled() {
+        // Always allow WP-CLI
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            return true;
+        }
+        
+        // Check for disable constant
+        if ( defined( 'WP_FORT_KNOX_DISABLED' ) && WP_FORT_KNOX_DISABLED ) {
+            return true;
+        }
+        
+        // Allow filter for programmatic control
+        if ( apply_filters( 'wp_fort_knox_disabled', false ) ) {
+            return true;
+        }
+        
+        return false;
     }
     
-    return $data;
-}, 10, 3);
-
-// Block role changes to administrator
-add_filter('wp_update_user', function($user_id, $old_user_data) {
-    if (defined('WP_CLI') && WP_CLI) {
-        return;
+    /**
+     * Apply all security measures
+     */
+    private function apply_security() {
+        // Block file modifications
+        if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+            define( 'DISALLOW_FILE_MODS', true );
+        }
+        
+        // Remove plugin capabilities at runtime (non-destructive)
+        add_filter( 'user_has_cap', [ $this, 'filter_capabilities' ], 999, 4 );
+        
+        // Hide administrator role from user creation/edit screens
+        add_filter( 'editable_roles', [ $this, 'hide_administrator_role' ] );
+        
+        // Block admin user creation via wp-admin
+        add_filter( 'pre_insert_user_data', [ $this, 'block_admin_creation' ], 10, 3 );
+        
+        // Prevent role elevation to administrator
+        add_action( 'set_user_role', [ $this, 'prevent_admin_elevation' ], 10, 3 );
+        
+        // Show notice on plugins page
+        add_action( 'admin_notices', [ $this, 'show_admin_notice' ] );
     }
     
-    $user = get_userdata($user_id);
-    if ($user && in_array('administrator', $user->roles) && 
-        !in_array('administrator', $old_user_data->roles)) {
-        // Remove admin role if it was just added outside WP-CLI
-        $user->remove_role('administrator');
-        $user->add_role($old_user_data->roles[0] ?? 'subscriber');
-    }
-}, 10, 2);
-
-// Monitor capability changes
-add_filter('user_has_cap', function($allcaps, $caps, $args, $user) {
-    if (defined('WP_CLI') && WP_CLI) {
+    /**
+     * Filter user capabilities at runtime
+     */
+    public function filter_capabilities( $allcaps, $caps, $args, $user ) {
+        // Only filter for non-CLI requests
+        foreach ( $this->managed_capabilities as $cap ) {
+            if ( isset( $allcaps[ $cap ] ) ) {
+                $allcaps[ $cap ] = false;
+            }
+        }
+        
         return $allcaps;
     }
     
-    // Get user's actual roles from database
-    $user_obj = get_userdata($user->ID);
-    if (!$user_obj) return $allcaps;
+    /**
+     * Hide administrator role from dropdowns
+     */
+    public function hide_administrator_role( $roles ) {
+        unset( $roles['administrator'] );
+        return $roles;
+    }
     
-    // If user shouldn't be admin but has admin caps, remove them
-    if (!in_array('administrator', $user_obj->roles) && 
-        isset($allcaps['manage_options']) && $allcaps['manage_options']) {
+    /**
+     * Block admin user creation
+     */
+    public function block_admin_creation( $data, $update, $user_id ) {
+        // Allow updates to existing users
+        if ( $update ) {
+            return $data;
+        }
         
-        // Remove all admin capabilities
-        foreach ($allcaps as $cap => $grant) {
-            if ($grant && in_array($cap, ['manage_options', 'update_core', 
-                'delete_users', 'create_users', 'edit_users'])) {
-                $allcaps[$cap] = false;
+        // Block new admin creation
+        if ( isset( $data['role'] ) && $data['role'] === 'administrator' ) {
+            wp_die( 
+                'Administrator account creation is disabled. Use WP-CLI: wp user create username email@example.com --role=administrator',
+                'Security Policy',
+                [ 'back_link' => true ]
+            );
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Prevent elevation to administrator role
+     */
+    public function prevent_admin_elevation( $user_id, $role, $old_roles ) {
+        // If trying to add administrator role
+        if ( $role === 'administrator' && ! in_array( 'administrator', $old_roles ) ) {
+            // Revert the change
+            $user = get_userdata( $user_id );
+            if ( $user ) {
+                $user->remove_role( 'administrator' );
+                $user->add_role( $old_roles[0] ?? 'subscriber' );
+                
+                // Log the attempt
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    error_log( sprintf(
+                        '[WP Fort Knox] Blocked administrator elevation for user %s (ID: %d)',
+                        $user->user_login,
+                        $user_id
+                    ) );
+                }
             }
         }
     }
     
-    return $allcaps;
-}, 999, 4);
-
-// Log all attempts to create/modify admin users
-add_action('user_register', function($user_id) {
-    $user = get_userdata($user_id);
-    if (in_array('administrator', $user->roles)) {
-        error_log(sprintf(
-            '[SECURITY] Admin user created: %s (ID: %d) from IP: %s',
-            $user->user_login,
-            $user_id,
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-        ));
+    /**
+     * Show admin notice on relevant pages
+     */
+    public function show_admin_notice() {
+        // Only show to users who would normally have capability
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+        
+        $screen = get_current_screen();
+        
+        // Show on plugins page
+        if ( $screen && $screen->id === 'plugins' ) {
+            ?>
+            <div class="notice notice-info">
+                <p><strong>WP Fort Knox:</strong> Plugin management is disabled in wp-admin. Use WP-CLI for all plugin operations. To disable temporarily, add <code>define('WP_FORT_KNOX_DISABLED', true);</code> to wp-config.php</p>
+            </div>
+            <?php
+        }
+        
+        // Show on users page when trying to add new
+        if ( $screen && $screen->id === 'user' && $screen->action === 'add' ) {
+            ?>
+            <div class="notice notice-warning">
+                <p><strong>WP Fort Knox:</strong> Administrator role creation is disabled. Use WP-CLI: <code>wp user create username email@example.com --role=administrator</code></p>
+            </div>
+            <?php
+        }
     }
-});
+}
+
+// Initialize - no activation hooks needed for mu-plugins
+new WP_Fort_Knox();
