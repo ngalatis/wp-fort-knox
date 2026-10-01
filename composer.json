@@ -1,0 +1,33 @@
+{
+  "name": "ngalatis/wp-fort-knox",
+  "description": "Single-file WordPress mu-plugin that locks down file modifications and administrator role escalation.",
+  "type": "wordpress-muplugin",
+  "license": "WTFPL",
+  "homepage": "https://github.com/ngalatis/wp-fort-knox",
+  "require": {
+    "php": ">=7.0"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.7",
+    "wp-coding-standards/wpcs": "^3.0",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpunit/phpunit": "^9.6",
+    "brain/monkey": "^2.6"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "php -l wp-fort-knox.php",
+    "phpcs": "phpcs --standard=phpcs.xml.dist",
+    "phpunit": "phpunit",
+    "test": [
+      "@lint",
+      "@phpcs",
+      "@phpunit"
+    ]
+  }
+}

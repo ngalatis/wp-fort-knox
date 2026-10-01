@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<ruleset name="WP Fort Knox" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
+	<description>Coding standards for WP Fort Knox.</description>
+
+	<file>wp-fort-knox.php</file>
+	<file>tests</file>
+
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg name="cache" value=".phpcs.cache"/>
+	<arg value="ps"/>
+
+	<!-- WordPress-Core, WordPress-Docs and WordPress-Extra. -->
+	<rule ref="WordPress"/>
+
+	<config name="minimum_supported_wp_version" value="5.8"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="wp-fort-knox"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		The plugin is a single-file mu-plugin whose file name is its public install
+		path (mu-plugins/wp-fort-knox.php); renaming it to class-wp-fort-knox.php
+		would break every existing install and the documented install commands.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*/wp-fort-knox\.php$</exclude-pattern>
+	</rule>
+
+	<!--
+		Unit tests run without WordPress and must set fixtures such as $pagenow and
+		$wpdb themselves; there is no real WordPress global to protect.
+	-->
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+
+	<!-- Tests use PSR-style class file names (TestCase.php, FooTest.php). -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+</ruleset>
