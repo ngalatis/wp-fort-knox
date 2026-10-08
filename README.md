@@ -708,7 +708,7 @@ The plugin does **not** define `DISALLOW_FILE_MODS`.
 
 ### Code Quality
 
-WordPress Coding Standards (tabs, Yoda conditions), `composer lint`, `composer phpcs`, `composer phpunit` (Brain Monkey), `composer test` for all of it, and a CI workflow on PHP 7.4 and 8.3.
+WordPress Coding Standards (tabs, Yoda conditions), `composer lint`, `composer phpcs`, `composer phpunit` (Brain Monkey), `composer test` for all of it, and a CI workflow on PHP 7.4 and 8.3. Releases are cut by the Release workflow: push a `vX.Y.Z` tag, or run it manually with the version number and it creates the tag for you. Either way it checks the version against the plugin header, runs the test suite, and builds the release notes from the matching changelog section below.
 
 ---
 

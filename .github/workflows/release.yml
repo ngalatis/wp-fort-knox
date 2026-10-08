@@ -1,0 +1,116 @@
+name: Release
+
+# Two ways to cut a release:
+#  1. Push a tag:   git tag -a v2.1.0 -m "2.1.0" && git push origin v2.1.0
+#     The release is created from the existing tag.
+#  2. Run this workflow manually with a version number. The tag is created
+#     at the selected branch head, then the release is created from it.
+#
+# In both cases the version must match the "Version:" plugin header, the
+# test suite must pass, and the release notes come from the matching
+# "### Version X.Y.Z" section of the README changelog.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without the leading v (for example 2.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::'$version' is not a semantic version (expected X.Y.Z)"
+            exit 1
+          fi
+          header=$(sed -nE 's/^ \* Version: *([0-9.]+).*/\1/p' wp-fort-knox.php | head -n1)
+          if [ "$header" != "$version" ]; then
+            echo "::error::Plugin header says Version: $header but the release is $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run the test suite
+        run: composer test
+
+      - name: Extract release notes from the README changelog
+        id: notes
+        run: |
+          awk -v ver="${{ steps.version.outputs.version }}" '
+            $0 ~ "^### Version " ver "([^0-9]|$)" { on = 1; next }
+            on && ($0 ~ /^### / || $0 ~ /^## / || $0 ~ /^---/) { exit }
+            on { print }
+          ' README.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::No '### Version ${{ steps.version.outputs.version }}' section found in the README changelog"
+            exit 1
+          fi
+          # A leading bold-only line ("**Bug Fix and Hardening Release**") becomes the release subtitle.
+          subtitle=$(head -n1 release-notes.md | sed -nE 's/^\*\*([^*]+)\*\*$/\1/p')
+          if [ -n "$subtitle" ]; then
+            tail -n +2 release-notes.md | sed -e :a -e '/./,$!d' > release-notes.tmp && mv release-notes.tmp release-notes.md
+            echo "title=${{ steps.version.outputs.tag }} - $subtitle" >> "$GITHUB_OUTPUT"
+          else
+            echo "title=${{ steps.version.outputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "--- release notes ---"; cat release-notes.md
+
+      - name: Create the tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists on origin"
+            exit 1
+          fi
+          git config user.name "$(git log -1 --format='%an')"
+          git config user.email "$(git log -1 --format='%ae')"
+          git tag -a "$tag" -m "WP Fort Knox ${{ steps.version.outputs.version }}"
+          git push origin "$tag"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists"
+            exit 1
+          fi
+          gh release create "$tag" wp-fort-knox.php \
+            --title "${{ steps.notes.outputs.title }}" \
+            --notes-file release-notes.md \
+            --latest \
+            --verify-tag
